@@ -16,8 +16,15 @@
     </params>
 </plugin>
 """
+import sys
 import Domoticz
 from datetime import datetime, timedelta
+
+from .mi_airpurifier import AirPurifier
+
+
+sys.path.append('/usr/local/lib/python3.4/dist-packages/')
+
 
 class XiaomiAirPurifierPlugin:
     enabled = False
@@ -61,33 +68,38 @@ class XiaomiAirPurifierPlugin:
                     "LevelActions": "|||||",
                     "LevelNames": "Off|Silent|Auto|Low|Medium|Max",
                     "LevelOffHidden": "false",
-                    "SelectorStyle": "1",
+                    "SelectorStyle": "0",
                 },
                 Image=7
             ).Create()
             Domoticz.Log("Devices created.")
             
+        self.token = AirPurifier.getToken(Parameters["Address"])
+        Domoticz.Debug("getToken: %s" % self.token)
+        if not self.token:
+            Domoticz.Error("Failed to get token: %s", Parameters["Address"])
+            
         DumpConfigToLog()
-        Domoticz.Log("Plugin is started.")
+        Domoticz.Debug("Plugin is started.")
 
     def onStop(self):
-        Domoticz.Log("Plugin is stopping.")
+        Domoticz.Debug("Plugin is stopping.")
         Domoticz.Debugging(0)
 
     def onConnect(self, Connection, Status, Description):
-        Domoticz.Log("onConnect called")
+        Domoticz.Debug("onConnect called")
 
     def onMessage(self, Connection, Data, Status, Extra):
-        Domoticz.Log("onMessage called")
+        Domoticz.Debug("onMessage called")
 
     def onCommand(self, Unit, Command, Level, Hue):
-        Domoticz.Log("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
+        Domoticz.Debug("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
-        Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
+        Domoticz.Debug("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
 
     def onDisconnect(self, Connection):
-        Domoticz.Log("onDisconnect called")
+        Domoticz.Debug("onDisconnect called")
 
     def onHeartbeat(self):
         now = datetime.now()
@@ -96,7 +108,11 @@ class XiaomiAirPurifierPlugin:
             self.polldata()
             
     def polldata(self):
-        pass
+        device = AirPurifier(Parameters["Address"], self.token, debug=1 if self.debug else 0)
+        #power, mode, aqi, temperature, humidity = device.getStatus()
+        status = device.getStatus()
+        # Domoticz.Debug("getStatus: %s, %s, %s, %s, %s" % (power, mode, aqi, temperature, humidity))
+        Domoticz.Debug("getStatus: %s" % status)
 
 
 global _plugin
